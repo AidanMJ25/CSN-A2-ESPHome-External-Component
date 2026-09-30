@@ -6,14 +6,19 @@ esp32:
   framework:
     type: esp-idf
 
-# Set these to the pins and serial settings of your CSN-A2 TTL model.
-# The listing has TTL, RS232, and USB variants. This component is for TTL UART;
-# use a level shifter for RS232, and a supported USB host UART for USB models.
+# QR701 TTL variant: use a regulated 9 V, 2–3 A supply and share GND with the
+# ESP. TX is sufficient for printing; leave printer TX and DTR disconnected.
+# The documented QR701 TTL default is 19,200 baud; try 9,600 if this unit does
+# not print correctly.
 uart:
   id: printer_uart
   tx_pin: GPIO17
-  rx_pin: GPIO16
-  baud_rate: 9600
+  # rx_pin is optional; do not connect printer TX to a 3.3 V ESP without
+  # confirming the printer's output level or using a level shifter.
+  baud_rate: 19200
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
 
 external_components:
   - source:

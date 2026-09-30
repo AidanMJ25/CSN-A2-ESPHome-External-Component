@@ -1,15 +1,35 @@
 # CSN-A2 ESPHome External Component
 
-An ESPHome external component for the Cashino CSN-A2 58 mm thermal receipt
-printer. It writes one block of text to a TTL UART printer and feeds three
-lines afterwards, leaving the receipt ready to tear.
+An ESPHome external component for the Cashino CSN-A2 / QR701-style 58 mm
+thermal receipt printer. It writes one block of text to a TTL UART printer and
+feeds three lines afterwards, leaving the receipt ready to tear.
 
 ## Hardware
 
 Use the **TTL UART** model of the CSN-A2. Connect the ESP's TX pin to the
-printer RX pin and connect ground to ground. Power the printer from a supply
-that meets the voltage/current rating printed on the specific unit; do not
-power a printer from the ESP board's GPIO or 3.3 V rail.
+printer RX pin and connect ground to ground. The QR701 TTL unit shown in the
+product photos is labelled **5–9 V, 2 A**. Use a regulated 9 V supply rated
+for at least 2 A (3 A is preferable) and do not power the printer from the ESP
+board's GPIO, 3.3 V rail, VIN, or 5 V pin.
+
+Confirm the TTL signal voltage in the printer documentation before connecting
+it to a 3.3 V ESP. If the printer's TX output is 5 V, do not connect it to an
+ESP RX pin without level shifting. This component only transmits text, so the
+safe minimal wiring is ESP TX → printer RX plus common ground; omit `rx_pin`
+and leave the printer TX wire disconnected. If the printer does not accept the
+ESP's 3.3 V TX signal, use an appropriate unidirectional level shifter.
+
+For the documented five-pin QR701 TTL connector, the functions are `VH`,
+`DTR/DSR`, `TXD`, `RXD`, and `GND`. Connect only `VH` to the printer supply,
+`GND` to both the supply negative and ESP ground, and `RXD` to ESP TX. Leave
+`DTR/DSR` and `TXD` disconnected for this transmit-only component. Always
+verify the markings on the printer PCB and harness first: connector orientation
+and wire colours vary between revisions.
+
+It uses 57 × 30 mm paper, has a 48 mm effective print width (384 dots per
+line), and advertises ESC/POS support. The component's direct text-plus-line-
+feed output is compatible with that command set, so no protocol change is
+needed for this TTL model.
 
 The product listing also offers RS232 and USB variants. RS232 requires a
 proper RS232 level shifter, while USB models require a supported ESPHome USB
@@ -27,8 +47,10 @@ external_components:
 uart:
   id: printer_uart
   tx_pin: GPIO17
-  rx_pin: GPIO16  # Optional if nothing reads from the printer.
-  baud_rate: 9600 # Change if your printer is configured differently.
+  baud_rate: 19200  # QR701 TTL documented default; try 9600 as fallback.
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
 
 csn_a2:
   id: receipt_printer
@@ -57,6 +79,15 @@ The component sends printable text as supplied, then sends three LF bytes for
 line feed. The printer needs a compatible text code page for non-ASCII
 characters; ASCII is the portable choice unless the unit's manual documents a
 different code page.
+
+## First test
+
+First power the printer by itself and verify the feed button works. Then wire
+only ESP TX → printer RXD and a common ground, configure 19,200 baud / 8-N-1,
+and use the example's button. If it prints nothing or garbage, verify the power
+and wire direction, then try 9,600 baud. Do not connect printer TX to an ESP
+GPIO until its idle voltage has been measured and confirmed safe for 3.3 V
+logic (or level-shifted).
 
 ## Notes
 
