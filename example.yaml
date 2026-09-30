@@ -1,5 +1,5 @@
 esphome:
-  name: csn-a2-printer
+  name: qr701-printer
 
 esp32:
   board: esp32dev
@@ -24,9 +24,9 @@ external_components:
   - source:
       type: local
       path: components
-    components: [csn_a2]
+    components: [qr701]
 
-csn_a2:
+qr701:
   id: receipt_printer
   uart_id: printer_uart
 
@@ -34,6 +34,6 @@ button:
   - platform: template
     name: Print test receipt
     on_press:
-      - csn_a2.print: |-
+      - qr701.print: |-
           Hello from ESPHome!
           This is a test receipt.

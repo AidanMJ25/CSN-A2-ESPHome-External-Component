@@ -1,14 +1,14 @@
-# CSN-A2 ESPHome External Component
+# QR701 ESPHome External Component
 
-An ESPHome external component for the Cashino CSN-A2 / QR701-style 58 mm
-thermal receipt printer. It writes one block of text to a TTL UART printer and
-feeds three lines afterwards, leaving the receipt ready to tear.
+An ESPHome external component for the QR701 58 mm TTL thermal receipt printer.
+It writes one block of text to the printer and feeds three lines afterwards,
+leaving the receipt ready to tear.
 
 ## Hardware
 
-Use the **TTL UART** model of the CSN-A2. Connect the ESP's TX pin to the
-printer RX pin and connect ground to ground. The QR701 TTL unit shown in the
-product photos is labelled **5–9 V, 2 A**. Use a regulated 9 V supply rated
+Use the **TTL UART** model of the QR701. Connect the ESP's TX pin to the
+printer RX pin and connect ground to ground. The printer is labelled **5–9 V,
+2 A**. Use a regulated 9 V supply rated
 for at least 2 A (3 A is preferable) and do not power the printer from the ESP
 board's GPIO, 3.3 V rail, VIN, or 5 V pin.
 
@@ -42,7 +42,7 @@ For a Git-hosted copy of this repository, use this in the device YAML:
 ```yaml
 external_components:
   - source: github://OWNER/REPOSITORY
-    components: [csn_a2]
+    components: [qr701]
 
 uart:
   id: printer_uart
@@ -52,7 +52,7 @@ uart:
   parity: NONE
   stop_bits: 1
 
-csn_a2:
+qr701:
   id: receipt_printer
   uart_id: printer_uart
 ```
@@ -62,13 +62,13 @@ block in [example.yaml](example.yaml).
 
 ## Print action
 
-`csn_a2.print` takes either a text value directly or an object with `id` and
+`qr701.print` takes either a text value directly or an object with `id` and
 `text`. The text may contain line breaks and may be templated.
 
 ```yaml
 on_...:
   then:
-    - csn_a2.print:
+    - qr701.print:
         id: receipt_printer
         text: |-
           Order #42

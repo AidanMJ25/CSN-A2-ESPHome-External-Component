@@ -6,9 +6,9 @@
 #include "esphome/core/automation.h"
 #include "esphome/core/component.h"
 
-namespace esphome::csn_a2 {
+namespace esphome::qr701 {
 
-class CSNA2 : public Component, public uart::UARTDevice {
+class QR701 : public Component, public uart::UARTDevice {
  public:
   void print(const std::string &text) {
     // ESC/POS-compatible printers accept printable bytes directly. Use the
@@ -23,16 +23,16 @@ class CSNA2 : public Component, public uart::UARTDevice {
   void dump_config() override;
 };
 
-template<typename... Ts> class CSNA2PrintAction : public Action<Ts...> {
+template<typename... Ts> class QR701PrintAction : public Action<Ts...> {
  public:
-  explicit CSNA2PrintAction(CSNA2 *parent) : parent_(parent) {}
+  explicit QR701PrintAction(QR701 *parent) : parent_(parent) {}
 
   TEMPLATABLE_VALUE(std::string, text)
 
   void play(const Ts &...x) override { this->parent_->print(this->text_.value(x...)); }
 
  protected:
-  CSNA2 *parent_;
+  QR701 *parent_;
 };
 
-}  // namespace esphome::csn_a2
+}  // namespace esphome::qr701

@@ -1,4 +1,4 @@
-"""ESPHome support for the Cashino CSN-A2 thermal receipt printer."""
+"""ESPHome support for the QR701 TTL thermal receipt printer."""
 
 import inspect
 
@@ -12,13 +12,13 @@ DEPENDENCIES = ["uart"]
 
 CONF_TEXT = "text"
 
-csn_a2_ns = cg.esphome_ns.namespace("csn_a2")
-CSNA2 = csn_a2_ns.class_("CSNA2", cg.Component, uart.UARTDevice)
-CSNA2PrintAction = csn_a2_ns.class_("CSNA2PrintAction", automation.Action)
+qr701_ns = cg.esphome_ns.namespace("qr701")
+QR701 = qr701_ns.class_("QR701", cg.Component, uart.UARTDevice)
+QR701PrintAction = qr701_ns.class_("QR701PrintAction", automation.Action)
 
 CONFIG_SCHEMA = cv.Schema(
     {
-        cv.GenerateID(): cv.declare_id(CSNA2),
+        cv.GenerateID(): cv.declare_id(QR701),
     }
 ).extend(cv.COMPONENT_SCHEMA).extend(uart.UART_DEVICE_SCHEMA)
 
@@ -32,7 +32,7 @@ async def to_code(config):
 PRINT_ACTION_SCHEMA = cv.maybe_simple_value(
     cv.Schema(
         {
-            cv.GenerateID(): cv.use_id(CSNA2),
+            cv.GenerateID(): cv.use_id(QR701),
             cv.Required(CONF_TEXT): cv.templatable(cv.string),
         }
     ),
@@ -48,9 +48,9 @@ if "synchronous" in inspect.signature(automation.register_action).parameters:
 
 
 @automation.register_action(
-    "csn_a2.print", CSNA2PrintAction, PRINT_ACTION_SCHEMA, **_register_action_kwargs
+    "qr701.print", QR701PrintAction, PRINT_ACTION_SCHEMA, **_register_action_kwargs
 )
-async def csn_a2_print_to_code(config, action_id, template_arg, args):
+async def qr701_print_to_code(config, action_id, template_arg, args):
     parent = await cg.get_variable(config[CONF_ID])
     var = cg.new_Pvariable(action_id, template_arg, parent)
     template_ = await cg.templatable(config[CONF_TEXT], args, cg.std_string)
