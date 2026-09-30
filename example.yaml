@@ -1,0 +1,34 @@
+esphome:
+  name: csn-a2-printer
+
+esp32:
+  board: esp32dev
+  framework:
+    type: esp-idf
+
+# Set these to the pins and serial settings of your CSN-A2 TTL model.
+# The listing has TTL, RS232, and USB variants. This component is for TTL UART;
+# use a level shifter for RS232, and a supported USB host UART for USB models.
+uart:
+  id: printer_uart
+  tx_pin: GPIO17
+  rx_pin: GPIO16
+  baud_rate: 9600
+
+external_components:
+  - source:
+      type: local
+      path: components
+    components: [csn_a2]
+
+csn_a2:
+  id: receipt_printer
+  uart_id: printer_uart
+
+button:
+  - platform: template
+    name: Print test receipt
+    on_press:
+      - csn_a2.print: |-
+          Hello from ESPHome!
+          This is a test receipt.
