@@ -47,6 +47,9 @@ external_components:
 uart:
   id: printer_uart
   tx_pin: GPIO17
+  # For status reporting, connect printer TXD here only after confirming it is
+  # safe for an ESP's 3.3 V input (or add a level shifter).
+  rx_pin: GPIO16
   baud_rate: 19200  # QR701 TTL documented default; try 9600 as fallback.
   data_bits: 8
   parity: NONE
@@ -55,6 +58,8 @@ uart:
 qr701:
   id: receipt_printer
   uart_id: printer_uart
+  status:
+    name: QR701 status
 ```
 
 For local development, replace the Git source with the `external_components`
@@ -89,9 +94,23 @@ and wire direction, then try 9,600 baud. Do not connect printer TX to an ESP
 GPIO until its idle voltage has been measured and confirmed safe for 3.3 V
 logic (or level-shifted).
 
+## Bidirectional status
+
+Add `rx_pin` and the optional `status` text sensor as shown above to enable
+two-way communication. The component polls ESC/POS `DLE EOT` real-time status
+commands once per `update_interval` (one second by default), publishing one of
+`idle`, `printing`, `offline`, `cover_open`, `paper_out`, `error`, or
+`unavailable`.
+
+`paper_out`, `cover_open`, `error`, and `offline` are decoded from printer
+replies. ESC/POS does not define a portable, reliable "mechanism currently
+printing" bit, so `printing` is a conservative local estimate after submitting
+a receipt; it changes to `idle` after the printer next confirms a healthy
+status. `unavailable` means the printer did not respond within 100 ms—check
+the RX/TX crossing, common ground, baud rate, and logic level.
+
 ## Notes
 
-This is intentionally a text-only component: it does not reset the printer,
-cut paper, set formatting, or query status. Those commands vary between
-firmware variants, while the requested text-printing path stays simple and
-safe.
+This component intentionally does not reset the printer, cut paper, or set
+formatting. Those commands vary between firmware variants, while the
+text-printing and real-time status paths remain simple and safe.
