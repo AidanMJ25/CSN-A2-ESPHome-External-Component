@@ -3,6 +3,7 @@
 #include <string>
 
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/button/button.h"
 #include "esphome/components/text/text.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/text_sensor/text_sensor.h"
@@ -11,8 +12,11 @@
 
 namespace esphome::qr701 {
 
+class QR701PrintText;
+
 class QR701 : public PollingComponent, public uart::UARTDevice {
  public:
+  void set_print_text(QR701PrintText *print_text) { this->print_text_ = print_text; }
   void set_status_text_sensor(text_sensor::TextSensor *status) { this->status_ = status; }
   void set_paper_out_binary_sensor(binary_sensor::BinarySensor *paper_out) { this->paper_out_sensor_ = paper_out; }
   void set_cover_open_binary_sensor(binary_sensor::BinarySensor *cover_open) { this->cover_open_sensor_ = cover_open; }
@@ -42,6 +46,7 @@ class QR701 : public PollingComponent, public uart::UARTDevice {
   }
 
   void refresh_status();
+  void print_text_field();
 
   void update() override;
   void loop() override;
@@ -90,6 +95,7 @@ class QR701 : public PollingComponent, public uart::UARTDevice {
   binary_sensor::BinarySensor *paper_out_sensor_{nullptr};
   binary_sensor::BinarySensor *cover_open_sensor_{nullptr};
   binary_sensor::BinarySensor *error_sensor_{nullptr};
+  QR701PrintText *print_text_{nullptr};
   uint8_t query_{0};
   uint32_t query_started_at_{0};
   uint32_t printing_until_{0};
@@ -105,17 +111,21 @@ class QR701 : public PollingComponent, public uart::UARTDevice {
   bool error_{false};
 };
 
-// A Home Assistant text entity used as a receipt submission field. Its state
-// is cleared after each submission so the next value is a new print job.
+// A Home Assistant text entity that holds the next receipt until the matching
+// QR701PrintButton is pressed.
 class QR701PrintText : public text::Text {
+ protected:
+  void control(const std::string &value) override { this->publish_state(value); }
+};
+
+class QR701PrintButton : public button::Button {
  public:
   void set_parent(QR701 *parent) { this->parent_ = parent; }
 
  protected:
-  void control(const std::string &value) override {
+  void press_action() override {
     if (this->parent_ != nullptr)
-      this->parent_->print(value);
-    this->publish_state("");
+      this->parent_->print_text_field();
   }
 
   QR701 *parent_{nullptr};

@@ -6,16 +6,18 @@ import esphome.automation as automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import binary_sensor
+from esphome.components import button
 from esphome.components import text
 from esphome.components import text_sensor
 from esphome.components import uart
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ["binary_sensor", "text", "text_sensor"]
+AUTO_LOAD = ["binary_sensor", "button", "text", "text_sensor"]
 
 CONF_TEXT = "text"
 CONF_PRINT_TEXT = "print_text"
+CONF_PRINT_BUTTON = "print_button"
 CONF_STATUS = "status"
 CONF_PAPER_OUT = "paper_out"
 CONF_COVER_OPEN = "cover_open"
@@ -30,19 +32,20 @@ DEFAULT_ERROR_CONFIG = {"name": "QR701 error"}
 qr701_ns = cg.esphome_ns.namespace("qr701")
 QR701 = qr701_ns.class_("QR701", cg.PollingComponent, uart.UARTDevice)
 QR701PrintText = qr701_ns.class_("QR701PrintText", text.Text)
+QR701PrintButton = qr701_ns.class_("QR701PrintButton", button.Button)
 QR701PrintAction = qr701_ns.class_("QR701PrintAction", automation.Action)
 QR701FeedAction = qr701_ns.class_("QR701FeedAction", automation.Action)
 QR701RefreshStatusAction = qr701_ns.class_("QR701RefreshStatusAction", automation.Action)
 
 
 def _add_default_print_text(config):
-    """Create the Home Assistant print field unless the user overrides it."""
-    if CONF_PRINT_TEXT in config:
-        return config
-
+    """Create Home Assistant print controls unless the user overrides them."""
     config = config.copy()
     component_id = str(config.get(CONF_ID, "qr701")).replace("_", " ").title()
-    config[CONF_PRINT_TEXT] = {"name": f"{component_id} Print Text"}
+    if CONF_PRINT_TEXT not in config:
+        config[CONF_PRINT_TEXT] = {"name": f"{component_id} Print Text"}
+    if CONF_PRINT_BUTTON not in config:
+        config[CONF_PRINT_BUTTON] = {"name": f"{component_id} Print"}
     return config
 
 
@@ -52,6 +55,7 @@ CONFIG_SCHEMA = cv.All(
     {
         cv.GenerateID(): cv.declare_id(QR701),
         cv.Optional(CONF_PRINT_TEXT): text.text_schema(QR701PrintText, mode="TEXT"),
+        cv.Optional(CONF_PRINT_BUTTON): button.button_schema(QR701PrintButton),
         cv.Optional(CONF_STATUS, default=DEFAULT_STATUS_CONFIG): text_sensor.text_sensor_schema(),
         cv.Optional(CONF_PAPER_OUT, default=DEFAULT_PAPER_OUT_CONFIG): binary_sensor.binary_sensor_schema(),
         cv.Optional(CONF_COVER_OPEN, default=DEFAULT_COVER_OPEN_CONFIG): binary_sensor.binary_sensor_schema(),
@@ -67,7 +71,10 @@ async def to_code(config):
     await uart.register_uart_device(var, config)
     if print_text_config := config.get(CONF_PRINT_TEXT):
         print_text = await text.new_text(print_text_config, max_length=1024)
-        cg.add(print_text.set_parent(var))
+        cg.add(var.set_print_text(print_text))
+    if print_button_config := config.get(CONF_PRINT_BUTTON):
+        print_button = await button.new_button(print_button_config)
+        cg.add(print_button.set_parent(var))
     if status_config := config.get(CONF_STATUS):
         status = await text_sensor.new_text_sensor(status_config)
         cg.add(var.set_status_text_sensor(status))

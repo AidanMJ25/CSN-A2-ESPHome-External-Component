@@ -72,26 +72,30 @@ and `text`. The text may contain line breaks and may be templated.
 ### Print custom text from Home Assistant
 
 The component automatically creates a writable Home Assistant **Text** entity
-from its `id`. For example, `id: receipt_printer` creates `Receipt Printer
-Print Text`. Entering text in its control, or setting it with the
-`text.set_value` service, submits that entire value as one receipt. The text
-field then clears, ready for the next print job.
+and a matching **Button** from its `id`. For example, `id: receipt_printer`
+creates `Receipt Printer Print Text` and `Receipt Printer Print`. Enter text
+in the field, then press the button to submit the field's entire value as one
+receipt. The draft text remains available for repeat prints or editing.
 
 ```yaml
-action: text.set_value
-target:
-  entity_id: text.qr701_printer_receipt_printer_print_text
-data:
-  value: |-
-    Order #1042
-    Thank you!
+sequence:
+  - action: text.set_value
+    target:
+      entity_id: text.qr701_printer_receipt_printer_print_text
+    data:
+      value: |-
+        Order #1042
+        Thank you!
+  - action: button.press
+    target:
+      entity_id: button.qr701_printer_receipt_printer_print
 ```
 
 Home Assistant assigns the actual entity ID, so use the one shown in your
 device's entity list. The text field accepts up to 1,024 characters. Newlines
 are retained; non-ASCII characters depend on the printer's ESC/POS code page.
 
-Set `print_text` only to override the generated label or other text-entity
+Set `print_text` or `print_button` only to override generated labels or entity
 settings:
 
 ```yaml
@@ -100,6 +104,8 @@ qr701:
   uart_id: printer_uart
   print_text:
     name: Kitchen receipt printer
+  print_button:
+    name: Print kitchen receipt
 ```
 
 ```yaml

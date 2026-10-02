@@ -6,6 +6,14 @@ namespace esphome::qr701 {
 
 static const char *const TAG = "qr701";
 
+void QR701::print_text_field() {
+  if (this->print_text_ == nullptr) {
+    ESP_LOGW(TAG, "Print button pressed without a text entity");
+    return;
+  }
+  this->print(this->print_text_->state);
+}
+
 void QR701::update() {
   if (!this->status_enabled_() || this->awaiting_status_)
     return;
