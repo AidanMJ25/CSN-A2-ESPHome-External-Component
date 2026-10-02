@@ -34,7 +34,21 @@ QR701PrintAction = qr701_ns.class_("QR701PrintAction", automation.Action)
 QR701FeedAction = qr701_ns.class_("QR701FeedAction", automation.Action)
 QR701RefreshStatusAction = qr701_ns.class_("QR701RefreshStatusAction", automation.Action)
 
-CONFIG_SCHEMA = cv.Schema(
+
+def _add_default_print_text(config):
+    """Create the Home Assistant print field unless the user overrides it."""
+    if CONF_PRINT_TEXT in config:
+        return config
+
+    config = config.copy()
+    component_id = str(config.get(CONF_ID, "qr701")).replace("_", " ").title()
+    config[CONF_PRINT_TEXT] = {"name": f"{component_id} Print Text"}
+    return config
+
+
+CONFIG_SCHEMA = cv.All(
+    _add_default_print_text,
+    cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(QR701),
         cv.Optional(CONF_PRINT_TEXT): text.text_schema(QR701PrintText, mode="TEXT"),
@@ -43,7 +57,8 @@ CONFIG_SCHEMA = cv.Schema(
         cv.Optional(CONF_COVER_OPEN, default=DEFAULT_COVER_OPEN_CONFIG): binary_sensor.binary_sensor_schema(),
         cv.Optional(CONF_ERROR, default=DEFAULT_ERROR_CONFIG): binary_sensor.binary_sensor_schema(),
     }
-).extend(cv.polling_component_schema("1s")).extend(uart.UART_DEVICE_SCHEMA)
+    ).extend(cv.polling_component_schema("1s")).extend(uart.UART_DEVICE_SCHEMA),
+)
 
 
 async def to_code(config):
