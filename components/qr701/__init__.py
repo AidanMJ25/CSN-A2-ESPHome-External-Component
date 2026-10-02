@@ -6,14 +6,16 @@ import esphome.automation as automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import binary_sensor
+from esphome.components import text
 from esphome.components import text_sensor
 from esphome.components import uart
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ["binary_sensor", "text_sensor"]
+AUTO_LOAD = ["binary_sensor", "text", "text_sensor"]
 
 CONF_TEXT = "text"
+CONF_PRINT_TEXT = "print_text"
 CONF_STATUS = "status"
 CONF_PAPER_OUT = "paper_out"
 CONF_COVER_OPEN = "cover_open"
@@ -22,6 +24,7 @@ CONF_LINES = "lines"
 
 qr701_ns = cg.esphome_ns.namespace("qr701")
 QR701 = qr701_ns.class_("QR701", cg.PollingComponent, uart.UARTDevice)
+QR701PrintText = qr701_ns.class_("QR701PrintText", text.Text)
 QR701PrintAction = qr701_ns.class_("QR701PrintAction", automation.Action)
 QR701FeedAction = qr701_ns.class_("QR701FeedAction", automation.Action)
 QR701RefreshStatusAction = qr701_ns.class_("QR701RefreshStatusAction", automation.Action)
@@ -29,6 +32,7 @@ QR701RefreshStatusAction = qr701_ns.class_("QR701RefreshStatusAction", automatio
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(QR701),
+        cv.Optional(CONF_PRINT_TEXT): text.text_schema(QR701PrintText, mode="TEXT"),
         cv.Optional(CONF_STATUS): text_sensor.text_sensor_schema(),
         cv.Optional(CONF_PAPER_OUT): binary_sensor.binary_sensor_schema(),
         cv.Optional(CONF_COVER_OPEN): binary_sensor.binary_sensor_schema(),
@@ -41,6 +45,9 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+    if print_text_config := config.get(CONF_PRINT_TEXT):
+        print_text = await text.new_text(print_text_config, max_length=1024)
+        cg.add(print_text.set_parent(var))
     if status_config := config.get(CONF_STATUS):
         status = await text_sensor.new_text_sensor(status_config)
         cg.add(var.set_status_text_sensor(status))

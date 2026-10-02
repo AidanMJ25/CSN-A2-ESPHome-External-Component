@@ -3,6 +3,7 @@
 #include <string>
 
 #include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/text/text.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/core/automation.h"
@@ -102,6 +103,22 @@ class QR701 : public PollingComponent, public uart::UARTDevice {
   bool cover_open_{false};
   bool paper_out_{false};
   bool error_{false};
+};
+
+// A Home Assistant text entity used as a receipt submission field. Its state
+// is cleared after each submission so the next value is a new print job.
+class QR701PrintText : public text::Text {
+ public:
+  void set_parent(QR701 *parent) { this->parent_ = parent; }
+
+ protected:
+  void control(const std::string &value) override {
+    if (this->parent_ != nullptr)
+      this->parent_->print(value);
+    this->publish_state("");
+  }
+
+  QR701 *parent_{nullptr};
 };
 
 template<typename... Ts> class QR701PrintAction : public Action<Ts...> {

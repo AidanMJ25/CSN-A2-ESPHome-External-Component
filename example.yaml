@@ -30,6 +30,10 @@ external_components:
 qr701:
   id: receipt_printer
   uart_id: printer_uart
+  # A writable Home Assistant text field. Setting its value prints one receipt.
+  # Newlines are preserved; the field clears after the job is submitted.
+  print_text:
+    name: Print QR701 text
   status:
     name: QR701 status
   paper_out:
