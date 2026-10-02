@@ -91,7 +91,9 @@ void QR701::process_status_(uint8_t status) {
       this->error_ = (status & 0x40) != 0;
       break;
     case 3:
-      this->error_ = this->error_ || (status & 0x68) != 0;
+      // DLE EOT 3: bits 2, 3, 5, and 6 report recoverable, cutter,
+      // unrecoverable, and auto-recoverable errors respectively.
+      this->error_ = this->error_ || (status & 0x6C) != 0;
       break;
     case 4:
       this->paper_out_ = this->paper_out_ || (status & 0x60) != 0;
