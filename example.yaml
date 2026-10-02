@@ -34,14 +34,6 @@ qr701:
   # Newlines are preserved; the field clears after the job is submitted.
   print_text:
     name: Print QR701 text
-  status:
-    name: QR701 status
-  paper_out:
-    name: QR701 paper out
-  cover_open:
-    name: QR701 cover open
-  error:
-    name: QR701 error
 
 button:
   - platform: template

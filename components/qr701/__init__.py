@@ -22,6 +22,11 @@ CONF_COVER_OPEN = "cover_open"
 CONF_ERROR = "error"
 CONF_LINES = "lines"
 
+DEFAULT_STATUS_CONFIG = {"name": "QR701 status"}
+DEFAULT_PAPER_OUT_CONFIG = {"name": "QR701 paper out"}
+DEFAULT_COVER_OPEN_CONFIG = {"name": "QR701 cover open"}
+DEFAULT_ERROR_CONFIG = {"name": "QR701 error"}
+
 qr701_ns = cg.esphome_ns.namespace("qr701")
 QR701 = qr701_ns.class_("QR701", cg.PollingComponent, uart.UARTDevice)
 QR701PrintText = qr701_ns.class_("QR701PrintText", text.Text)
@@ -33,10 +38,10 @@ CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(QR701),
         cv.Optional(CONF_PRINT_TEXT): text.text_schema(QR701PrintText, mode="TEXT"),
-        cv.Optional(CONF_STATUS): text_sensor.text_sensor_schema(),
-        cv.Optional(CONF_PAPER_OUT): binary_sensor.binary_sensor_schema(),
-        cv.Optional(CONF_COVER_OPEN): binary_sensor.binary_sensor_schema(),
-        cv.Optional(CONF_ERROR): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_STATUS, default=DEFAULT_STATUS_CONFIG): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_PAPER_OUT, default=DEFAULT_PAPER_OUT_CONFIG): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_COVER_OPEN, default=DEFAULT_COVER_OPEN_CONFIG): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR, default=DEFAULT_ERROR_CONFIG): binary_sensor.binary_sensor_schema(),
     }
 ).extend(cv.polling_component_schema("1s")).extend(uart.UART_DEVICE_SCHEMA)
 

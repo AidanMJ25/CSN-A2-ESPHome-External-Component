@@ -60,14 +60,6 @@ qr701:
   uart_id: printer_uart
   print_text:
     name: Print QR701 text
-  status:
-    name: QR701 status
-  paper_out:
-    name: QR701 paper out
-  cover_open:
-    name: QR701 cover open
-  error:
-    name: QR701 error
 ```
 
 For local development, replace the Git source with the `external_components`
@@ -140,8 +132,9 @@ logic (or level-shifted).
 
 ## Bidirectional status
 
-Add `rx_pin` and the optional `status` text sensor as shown above to enable
-two-way communication. The component polls ESC/POS `DLE EOT` real-time status
+Add `rx_pin` to enable two-way communication. The component automatically
+creates a `QR701 status` text sensor and `QR701 paper out`, `QR701 cover open`,
+and `QR701 error` binary sensors. It polls ESC/POS `DLE EOT` real-time status
 commands once per `update_interval` (one second by default), publishing one of
 `idle`, `printing`, `offline`, `cover_open`, `paper_out`, `error`, or
 `unavailable`.
@@ -153,9 +146,9 @@ a receipt; it changes to `idle` after the printer next confirms a healthy
 status. `unavailable` means the printer did not respond within 100 ms—check
 the RX/TX crossing, common ground, baud rate, and logic level.
 
-The optional `paper_out`, `cover_open`, and `error` settings expose the same
-confirmed states as Home Assistant binary sensors. The QR701 has a tear bar,
-not an automatic cutter, so this component deliberately has no `cut` action.
+Set any of `status`, `paper_out`, `cover_open`, or `error` only when you want
+to override its name or entity settings. The QR701 has a tear bar, not an
+automatic cutter, so this component deliberately has no `cut` action.
 
 ## Notes
 
