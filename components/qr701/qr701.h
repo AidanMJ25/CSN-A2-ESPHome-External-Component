@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/uart/uart.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/core/automation.h"
@@ -12,6 +13,9 @@ namespace esphome::qr701 {
 class QR701 : public PollingComponent, public uart::UARTDevice {
  public:
   void set_status_text_sensor(text_sensor::TextSensor *status) { this->status_ = status; }
+  void set_paper_out_binary_sensor(binary_sensor::BinarySensor *paper_out) { this->paper_out_sensor_ = paper_out; }
+  void set_cover_open_binary_sensor(binary_sensor::BinarySensor *cover_open) { this->cover_open_sensor_ = cover_open; }
+  void set_error_binary_sensor(binary_sensor::BinarySensor *error) { this->error_sensor_ = error; }
 
   void print(const std::string &text) {
     // ESC/POS requires a status reply to be read before additional data is
@@ -25,6 +29,18 @@ class QR701 : public PollingComponent, public uart::UARTDevice {
     }
     this->start_print_(text);
   }
+
+  void feed(uint8_t lines) {
+    if (this->awaiting_status_) {
+      this->queued_feed_lines_ = lines;
+      this->feed_queued_ = true;
+      this->publish_status_("printing");
+      return;
+    }
+    this->start_feed_(lines);
+  }
+
+  void refresh_status();
 
   void update() override;
   void loop() override;
@@ -52,19 +68,36 @@ class QR701 : public PollingComponent, public uart::UARTDevice {
     this->publish_status_("printing");
   }
 
+  void start_feed_(uint8_t lines) {
+    // ESC d n: print the current line and feed n lines.
+    this->write_byte(0x1B);
+    this->write_byte(0x64);
+    this->write_byte(lines);
+    this->printing_until_ = millis() + 250 + static_cast<uint32_t>(lines) * 100;
+    this->printing_ = true;
+    this->publish_status_("printing");
+  }
+
   void request_status_(uint8_t query);
   void process_status_(uint8_t status);
+  void publish_binary_status_();
   void publish_printer_status_();
   void publish_status_(const char *status);
+  bool status_enabled_() const;
 
   text_sensor::TextSensor *status_{nullptr};
+  binary_sensor::BinarySensor *paper_out_sensor_{nullptr};
+  binary_sensor::BinarySensor *cover_open_sensor_{nullptr};
+  binary_sensor::BinarySensor *error_sensor_{nullptr};
   uint8_t query_{0};
   uint32_t query_started_at_{0};
   uint32_t printing_until_{0};
   std::string queued_text_;
+  uint8_t queued_feed_lines_{0};
   bool awaiting_status_{false};
   bool printing_{false};
   bool print_queued_{false};
+  bool feed_queued_{false};
   bool offline_{false};
   bool cover_open_{false};
   bool paper_out_{false};
@@ -78,6 +111,28 @@ template<typename... Ts> class QR701PrintAction : public Action<Ts...> {
   TEMPLATABLE_VALUE(std::string, text)
 
   void play(const Ts &...x) override { this->parent_->print(this->text_.value(x...)); }
+
+ protected:
+  QR701 *parent_;
+};
+
+template<typename... Ts> class QR701FeedAction : public Action<Ts...> {
+ public:
+  explicit QR701FeedAction(QR701 *parent) : parent_(parent) {}
+
+  TEMPLATABLE_VALUE(uint8_t, lines)
+
+  void play(const Ts &...x) override { this->parent_->feed(this->lines_.value(x...)); }
+
+ protected:
+  QR701 *parent_;
+};
+
+template<typename... Ts> class QR701RefreshStatusAction : public Action<Ts...> {
+ public:
+  explicit QR701RefreshStatusAction(QR701 *parent) : parent_(parent) {}
+
+  void play(const Ts &...) override { this->parent_->refresh_status(); }
 
  protected:
   QR701 *parent_;

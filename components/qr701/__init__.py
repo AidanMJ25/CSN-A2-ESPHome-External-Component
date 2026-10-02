@@ -5,24 +5,34 @@ import inspect
 import esphome.automation as automation
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.components import uart
+from esphome.components import binary_sensor
 from esphome.components import text_sensor
+from esphome.components import uart
 from esphome.const import CONF_ID
 
 DEPENDENCIES = ["uart"]
-AUTO_LOAD = ["text_sensor"]
+AUTO_LOAD = ["binary_sensor", "text_sensor"]
 
 CONF_TEXT = "text"
 CONF_STATUS = "status"
+CONF_PAPER_OUT = "paper_out"
+CONF_COVER_OPEN = "cover_open"
+CONF_ERROR = "error"
+CONF_LINES = "lines"
 
 qr701_ns = cg.esphome_ns.namespace("qr701")
 QR701 = qr701_ns.class_("QR701", cg.PollingComponent, uart.UARTDevice)
 QR701PrintAction = qr701_ns.class_("QR701PrintAction", automation.Action)
+QR701FeedAction = qr701_ns.class_("QR701FeedAction", automation.Action)
+QR701RefreshStatusAction = qr701_ns.class_("QR701RefreshStatusAction", automation.Action)
 
 CONFIG_SCHEMA = cv.Schema(
     {
         cv.GenerateID(): cv.declare_id(QR701),
         cv.Optional(CONF_STATUS): text_sensor.text_sensor_schema(),
+        cv.Optional(CONF_PAPER_OUT): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_COVER_OPEN): binary_sensor.binary_sensor_schema(),
+        cv.Optional(CONF_ERROR): binary_sensor.binary_sensor_schema(),
     }
 ).extend(cv.polling_component_schema("1s")).extend(uart.UART_DEVICE_SCHEMA)
 
@@ -34,6 +44,14 @@ async def to_code(config):
     if status_config := config.get(CONF_STATUS):
         status = await text_sensor.new_text_sensor(status_config)
         cg.add(var.set_status_text_sensor(status))
+    for key, setter in (
+        (CONF_PAPER_OUT, "set_paper_out_binary_sensor"),
+        (CONF_COVER_OPEN, "set_cover_open_binary_sensor"),
+        (CONF_ERROR, "set_error_binary_sensor"),
+    ):
+        if sensor_config := config.get(key):
+            sensor = await binary_sensor.new_binary_sensor(sensor_config)
+            cg.add(getattr(var, setter)(sensor))
 
 
 PRINT_ACTION_SCHEMA = cv.maybe_simple_value(
@@ -55,6 +73,9 @@ if "synchronous" in inspect.signature(automation.register_action).parameters:
 
 
 @automation.register_action(
+    "qr701.print_text", QR701PrintAction, PRINT_ACTION_SCHEMA, **_register_action_kwargs
+)
+@automation.register_action(
     "qr701.print", QR701PrintAction, PRINT_ACTION_SCHEMA, **_register_action_kwargs
 )
 async def qr701_print_to_code(config, action_id, template_arg, args):
@@ -63,3 +84,36 @@ async def qr701_print_to_code(config, action_id, template_arg, args):
     template_ = await cg.templatable(config[CONF_TEXT], args, cg.std_string)
     cg.add(var.set_text(template_))
     return var
+
+
+FEED_ACTION_SCHEMA = cv.maybe_simple_value(
+    cv.Schema(
+        {
+            cv.GenerateID(): cv.use_id(QR701),
+            cv.Required(CONF_LINES): cv.templatable(cv.int_range(min=0, max=255)),
+        }
+    ),
+    key=CONF_LINES,
+)
+
+
+@automation.register_action(
+    "qr701.feed", QR701FeedAction, FEED_ACTION_SCHEMA, **_register_action_kwargs
+)
+async def qr701_feed_to_code(config, action_id, template_arg, args):
+    parent = await cg.get_variable(config[CONF_ID])
+    var = cg.new_Pvariable(action_id, template_arg, parent)
+    template_ = await cg.templatable(config[CONF_LINES], args, cg.uint8)
+    cg.add(var.set_lines(template_))
+    return var
+
+
+@automation.register_action(
+    "qr701.refresh_status",
+    QR701RefreshStatusAction,
+    cv.Schema({cv.GenerateID(): cv.use_id(QR701)}),
+    **_register_action_kwargs,
+)
+async def qr701_refresh_status_to_code(config, action_id, template_arg, args):
+    parent = await cg.get_variable(config[CONF_ID])
+    return cg.new_Pvariable(action_id, template_arg, parent)

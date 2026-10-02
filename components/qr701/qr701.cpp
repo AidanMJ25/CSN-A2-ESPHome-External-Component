@@ -7,6 +7,12 @@ namespace esphome::qr701 {
 static const char *const TAG = "qr701";
 
 void QR701::update() {
+  if (!this->status_enabled_() || this->awaiting_status_)
+    return;
+  this->refresh_status();
+}
+
+void QR701::refresh_status() {
   if (this->awaiting_status_)
     return;
   this->offline_ = false;
@@ -28,6 +34,10 @@ void QR701::loop() {
       this->request_status_(this->query_ + 1);
     } else {
       this->publish_printer_status_();
+      if (this->feed_queued_) {
+        this->feed_queued_ = false;
+        this->start_feed_(this->queued_feed_lines_);
+      }
       if (this->print_queued_) {
         this->print_queued_ = false;
         this->start_print_(this->queued_text_);
@@ -40,6 +50,10 @@ void QR701::loop() {
   if (millis() - this->query_started_at_ > 100) {
     this->awaiting_status_ = false;
     this->publish_status_("unavailable");
+    if (this->feed_queued_) {
+      this->feed_queued_ = false;
+      this->start_feed_(this->queued_feed_lines_);
+    }
     if (this->print_queued_) {
       this->print_queued_ = false;
       this->start_print_(this->queued_text_);
@@ -78,6 +92,7 @@ void QR701::process_status_(uint8_t status) {
 }
 
 void QR701::publish_printer_status_() {
+  this->publish_binary_status_();
   if (this->error_) {
     this->publish_status_("error");
   } else if (this->paper_out_) {
@@ -94,10 +109,24 @@ void QR701::publish_printer_status_() {
   }
 }
 
+void QR701::publish_binary_status_() {
+  if (this->paper_out_sensor_ != nullptr)
+    this->paper_out_sensor_->publish_state(this->paper_out_);
+  if (this->cover_open_sensor_ != nullptr)
+    this->cover_open_sensor_->publish_state(this->cover_open_);
+  if (this->error_sensor_ != nullptr)
+    this->error_sensor_->publish_state(this->error_);
+}
+
 void QR701::publish_status_(const char *status) {
   ESP_LOGD(TAG, "Printer status: %s", status);
   if (this->status_ != nullptr)
     this->status_->publish_state(status);
+}
+
+bool QR701::status_enabled_() const {
+  return this->status_ != nullptr || this->paper_out_sensor_ != nullptr || this->cover_open_sensor_ != nullptr ||
+         this->error_sensor_ != nullptr;
 }
 
 void QR701::dump_config() {

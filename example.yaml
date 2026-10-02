@@ -32,11 +32,26 @@ qr701:
   uart_id: printer_uart
   status:
     name: QR701 status
+  paper_out:
+    name: QR701 paper out
+  cover_open:
+    name: QR701 cover open
+  error:
+    name: QR701 error
 
 button:
   - platform: template
+    name: Feed QR701 paper
+    on_press:
+      - qr701.feed: 3
+  - platform: template
+    name: Refresh QR701 status
+    on_press:
+      - qr701.refresh_status:
+          id: receipt_printer
+  - platform: template
     name: Print test receipt
     on_press:
-      - qr701.print: |-
+      - qr701.print_text: |-
           Hello from ESPHome!
           This is a test receipt.

@@ -60,20 +60,27 @@ qr701:
   uart_id: printer_uart
   status:
     name: QR701 status
+  paper_out:
+    name: QR701 paper out
+  cover_open:
+    name: QR701 cover open
+  error:
+    name: QR701 error
 ```
 
 For local development, replace the Git source with the `external_components`
 block in [example.yaml](example.yaml).
 
-## Print action
+## Print and feed actions
 
-`qr701.print` takes either a text value directly or an object with `id` and
-`text`. The text may contain line breaks and may be templated.
+`qr701.print_text` takes either a text value directly or an object with `id`
+and `text`. The text may contain line breaks and may be templated.
+`qr701.print` remains a compatible alias.
 
 ```yaml
 on_...:
   then:
-    - qr701.print:
+    - qr701.print_text:
         id: receipt_printer
         text: |-
           Order #42
@@ -84,6 +91,20 @@ The component sends printable text as supplied, then sends three LF bytes for
 line feed. The printer needs a compatible text code page for non-ASCII
 characters; ASCII is the portable choice unless the unit's manual documents a
 different code page.
+
+`qr701.feed` feeds from 0 to 255 lines using the printer's `ESC d n` command.
+`qr701.refresh_status` immediately requests a fresh set of status bytes rather
+than waiting for the next polling interval.
+
+```yaml
+on_...:
+  then:
+    - qr701.feed:
+        id: receipt_printer
+        lines: 3
+    - qr701.refresh_status:
+        id: receipt_printer
+```
 
 ## First test
 
@@ -108,6 +129,10 @@ printing" bit, so `printing` is a conservative local estimate after submitting
 a receipt; it changes to `idle` after the printer next confirms a healthy
 status. `unavailable` means the printer did not respond within 100 ms—check
 the RX/TX crossing, common ground, baud rate, and logic level.
+
+The optional `paper_out`, `cover_open`, and `error` settings expose the same
+confirmed states as Home Assistant binary sensors. The QR701 has a tear bar,
+not an automatic cutter, so this component deliberately has no `cut` action.
 
 ## Notes
 
